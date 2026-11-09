@@ -19,6 +19,7 @@ const uid = $props.id();
 const paneId = `split-pane-${uid}`;
 
 let container: HTMLElement;
+// svelte-ignore state_referenced_locally: we can't be reactive to that
 let leftWidth = $state(clampWidth(initialWidth));
 let dragging = $state(false);
 

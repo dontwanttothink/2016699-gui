@@ -2,12 +2,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { graphviz } from "d3-graphviz";
 import { onMount } from "svelte";
+import SplitPane from "#components/SplitPane.svelte";
 
-let container: HTMLElement;
 let treeEl: HTMLElement;
 let graph: ReturnType<typeof graphviz> | undefined;
 let errorMsg = $state("");
-let leftWidth = $state(70);
 let dot = $state("digraph { a -> b }");
 
 onMount(() => {
@@ -34,121 +33,19 @@ $effect(() => {
 function render(src: string) {
 	graph?.width(treeEl.clientWidth).height(treeEl.clientHeight).renderDot(src);
 }
-
-const MIN_WIDTH = 10;
-const MAX_WIDTH = 80;
-const KEY_STEP = 5;
-
-function clampWidth(value: number) {
-	return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, value));
-}
-
-let dragging = $state(false);
-function startDrag(event: PointerEvent) {
-	dragging = true;
-	(event.target as HTMLElement).setPointerCapture(event.pointerId);
-}
-
-function drag(event: PointerEvent) {
-	if (!dragging) return;
-	const rect = container.getBoundingClientRect();
-	leftWidth = clampWidth(((event.clientX - rect.left) / rect.width) * 100);
-}
-
-function stopDrag() {
-	dragging = false;
-}
-
-function onKeyDown(event: KeyboardEvent) {
-	switch (event.key) {
-		case "ArrowLeft":
-			leftWidth = clampWidth(leftWidth - KEY_STEP);
-			break;
-		case "ArrowRight":
-			leftWidth = clampWidth(leftWidth + KEY_STEP);
-			break;
-		case "Home":
-			leftWidth = MIN_WIDTH;
-			break;
-		case "End":
-			leftWidth = MAX_WIDTH;
-			break;
-		default:
-			return;
-	}
-	event.preventDefault();
-}
 </script>
 
-<main class="split" bind:this={container}>
-	<div id="tree-pane" class="pane left" style="width: {leftWidth}%">
+<SplitPane>
+	{#snippet left()}
 		<div class="tree" bind:this={treeEl}></div>
-	</div>
+	{/snippet}
 
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-	<!-- biome-ignore lint/a11y/useSemanticElements: there doesn't seem to actually be a more appropriate element unfortunately -->
-	<div
-		class="divider"
-		class:active={dragging}
-		role="separator"
-		tabindex="0"
-		aria-label="Resize panels"
-		aria-orientation="vertical"
-		aria-controls="tree-pane"
-		aria-valuenow={Math.round(leftWidth)}
-		aria-valuemin={MIN_WIDTH}
-		aria-valuemax={MAX_WIDTH}
-		onkeydown={onKeyDown}
-		onpointerdown={startDrag}
-		onpointermove={drag}
-		onpointerup={stopDrag}
-		onpointercancel={stopDrag}
-	></div>
-
-	<div class="pane right">
+	{#snippet right()}
 		<h1>hello</h1>
-	</div>
-</main>
+	{/snippet}
+</SplitPane>
 
 <style>
-.split {
-	display: flex;
-	width: 100%;
-	height: 100%;
-	overflow: hidden;
-}
-
-.pane {
-	overflow: auto;
-	min-width: 0;
-}
-
-.pane.right {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	padding: 0px;
-	box-sizing: border-box;
-}
-
-.divider {
-	flex: 0 0 6px;
-	background-color: #cccccc;
-	cursor: col-resize;
-	touch-action: none;
-}
-
-.divider:hover,
-.divider:focus-visible,
-.divider.active {
-	background-color: #396cd8;
-}
-
-.divider:focus-visible {
-	outline: 2px solid #396cd8;
-	outline-offset: 2px;
-}
-
 .tree {
 	width: 100%;
 	height: 100%;

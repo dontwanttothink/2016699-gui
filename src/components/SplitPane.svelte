@@ -1,17 +1,19 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import { onMount } from "svelte";
 
-const MIN_WIDTH = 10;
-const MAX_WIDTH = 80;
-const KEY_STEP = 5;
+const MIN_LEFT_WIDTH = 160;
+const MIN_RIGHT_WIDTH = 280;
+const KEY_STEP = 16;
 
 const {
 	left,
 	right,
-	initialWidth = 70,
+	initialWidth = 60,
 }: {
 	left: Snippet;
 	right: Snippet;
+	/** Ancho inicial del panel izquierdo, como porcentaje del contenedor */
 	initialWidth?: number;
 } = $props();
 
@@ -19,13 +21,36 @@ const uid = $props.id();
 const paneId = `split-pane-${uid}`;
 
 let container: HTMLElement;
-// svelte-ignore state_referenced_locally: we can't be reactive to that
-let leftWidth = $state(clampWidth(initialWidth));
+let divider: HTMLElement;
+let containerWidth = $state(0);
+let dividerWidth = $state(0);
+let leftWidth = $state(0);
 let dragging = $state(false);
 
-function clampWidth(value: number) {
-	return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, value));
+const leftMax = $derived(
+	Math.max(MIN_LEFT_WIDTH, containerWidth - dividerWidth - MIN_RIGHT_WIDTH),
+);
+
+function clamp(value: number) {
+	return Math.min(leftMax, Math.max(MIN_LEFT_WIDTH, value));
 }
+
+function measure() {
+	containerWidth = container.getBoundingClientRect().width;
+	dividerWidth = divider.getBoundingClientRect().width;
+}
+
+onMount(() => {
+	measure();
+	leftWidth = clamp((containerWidth * initialWidth) / 100);
+
+	const observer = new ResizeObserver(() => {
+		measure();
+		leftWidth = clamp(leftWidth);
+	});
+	observer.observe(container);
+	return () => observer.disconnect();
+});
 
 function startDrag(event: PointerEvent) {
 	dragging = true;
@@ -35,8 +60,7 @@ function startDrag(event: PointerEvent) {
 
 function drag(event: PointerEvent) {
 	if (!dragging) return;
-	const rect = container.getBoundingClientRect();
-	leftWidth = clampWidth(((event.clientX - rect.left) / rect.width) * 100);
+	leftWidth = clamp(event.clientX - container.getBoundingClientRect().left);
 }
 
 function stopDrag() {
@@ -46,16 +70,16 @@ function stopDrag() {
 function onKeyDown(event: KeyboardEvent) {
 	switch (event.key) {
 		case "ArrowLeft":
-			leftWidth = clampWidth(leftWidth - KEY_STEP);
+			leftWidth = clamp(leftWidth - KEY_STEP);
 			break;
 		case "ArrowRight":
-			leftWidth = clampWidth(leftWidth + KEY_STEP);
+			leftWidth = clamp(leftWidth + KEY_STEP);
 			break;
 		case "Home":
-			leftWidth = MIN_WIDTH;
+			leftWidth = MIN_LEFT_WIDTH;
 			break;
 		case "End":
-			leftWidth = MAX_WIDTH;
+			leftWidth = leftMax;
 			break;
 		default:
 			return;
@@ -64,14 +88,19 @@ function onKeyDown(event: KeyboardEvent) {
 }
 </script>
 
-<main class="split" bind:this={container}>
-	<div id={paneId} class="pane left" style="width: {leftWidth}%">
+<main
+	class="split"
+	bind:this={container}
+	style="--min-left: {MIN_LEFT_WIDTH}px; --min-right: {MIN_RIGHT_WIDTH}px"
+>
+	<div id={paneId} class="pane left" style="width: {leftWidth}px">
 		{@render left()}
 	</div>
 
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 	<!-- biome-ignore lint/a11y/useSemanticElements: there doesn't seem to actually be a more appropriate element unfortunately -->
 	<div
+		bind:this={divider}
 		class="divider"
 		class:active={dragging}
 		role="separator"
@@ -80,8 +109,8 @@ function onKeyDown(event: KeyboardEvent) {
 		aria-orientation="vertical"
 		aria-controls={paneId}
 		aria-valuenow={Math.round(leftWidth)}
-		aria-valuemin={MIN_WIDTH}
-		aria-valuemax={MAX_WIDTH}
+		aria-valuemin={MIN_LEFT_WIDTH}
+		aria-valuemax={leftMax}
 		onkeydown={onKeyDown}
 		onpointerdown={startDrag}
 		onpointermove={drag}
@@ -104,7 +133,10 @@ function onKeyDown(event: KeyboardEvent) {
 
 .pane {
 	overflow: auto;
-	min-width: 0;
+}
+
+.pane.left {
+	min-width: var(--min-left);
 }
 
 .pane.right {
@@ -113,22 +145,17 @@ function onKeyDown(event: KeyboardEvent) {
 	flex-direction: column;
 	padding: 0px;
 	box-sizing: border-box;
+	min-width: var(--min-right);
 }
 
 .divider {
 	flex: 0 0 3px;
 	height: calc(100% - 2.3em);
 	align-self: center;
-	background-color: #cccccc;
+	background-color: var(--border);
 	border-radius: 3px;
 	cursor: col-resize;
 	touch-action: none;
 	transition: background-color 100ms ease;
-}
-
-.divider:hover,
-.divider:focus-visible,
-.divider.active {
-	background-color: #396cd8;
 }
 </style>

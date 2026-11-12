@@ -1,9 +1,17 @@
 <script lang="ts">
+import { MediaQuery } from "svelte/reactivity";
 // import { invoke } from "@tauri-apps/api/core";
 import Graphviz from "#components/Graphviz.svelte";
 import SplitPane from "#components/SplitPane.svelte";
 
-let dot = $state("digraph { a -> b }");
+const darkScheme = new MediaQuery("prefers-color-scheme: dark");
+const foreground = $derived(darkScheme.current ? "#ffffff" : "#0f0f0f");
+const font = "Figtree Variable";
+
+let body = $state("a -> b; b -> c");
+const dot = $derived(
+	`digraph { bgcolor=transparent; graph [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; node [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; edge [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; ${body}\n}`,
+);
 let errorMsg = $state("");
 </script>
 
@@ -13,12 +21,11 @@ let errorMsg = $state("");
 	{/snippet}
 
 	{#snippet right()}
-		<h1>hello</h1>
+		<div style:padding="1em">
+			<h1>hello</h1>
+		</div>
 	{/snippet}
 </SplitPane>
 
 <style>
-h1 {
-	text-align: center;
-}
 </style>

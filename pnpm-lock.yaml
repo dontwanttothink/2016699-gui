@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fontsource-variable/figtree':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@tauri-apps/api':
         specifier: ^2
         version: 2.12.4
@@ -119,6 +122,9 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/figtree@5.3.0':
+    resolution: {integrity: sha512-VRVodD7OiG7apQwE8/2fMjaqpY/a0qRJqL5HtYj8CKIVps+9amaFcdfKmDIf7iqYQx6iPLlArVXAfKeIZmVcNQ==}
 
   '@hpcc-js/wasm@2.36.0':
     resolution: {integrity: sha512-+FM8QiFBvyw/jIa6qYmMlogAiMHJLGDHvmprjHTeAVv7ggIj4B7U9ZPpgaL2+XydLq7LCGtbN1X6JV6MbegJbQ==}
@@ -814,6 +820,8 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.6.6':
     optional: true
+
+  '@fontsource-variable/figtree@5.3.0': {}
 
   '@hpcc-js/wasm@2.36.0':
     dependencies:

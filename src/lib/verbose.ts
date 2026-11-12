@@ -1,5 +1,6 @@
 /**
- * Funciones y tipos para lidiar con la serialización de estructuras internas
+ * Funciones y tipos para lidiar con la serialización de estructuras en las salidas
+ * del CLI
  */
 
 export type ListSnapshot = { kind: "list"; edges: [number, number][] };

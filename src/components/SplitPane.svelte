@@ -117,7 +117,7 @@ function onKeyDown(event: KeyboardEvent) {
 
 .divider {
 	flex: 0 0 3px;
-	height: 90%;
+	height: calc(100% - 2.3em);
 	align-self: center;
 	background-color: #cccccc;
 	border-radius: 3px;

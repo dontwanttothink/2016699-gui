@@ -13,7 +13,8 @@
 		"tauri": "tauri"
 	},
 	"imports": {
-		"#components/*": "./src/components/*"
+		"#components/*": "./src/components/*",
+		"#lib/*": "./src/lib/*"
 	},
 	"license": "MIT",
 	"dependencies": {

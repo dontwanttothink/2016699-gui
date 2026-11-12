@@ -3,6 +3,9 @@ import { graphviz } from "d3-graphviz";
 import { onMount } from "svelte";
 import { MediaQuery } from "svelte/reactivity";
 
+/**
+ * Un elemento en el grafo de d3-graphviz
+ */
 type Datum = {
 	tag: string;
 	attributes: Record<string, string>;

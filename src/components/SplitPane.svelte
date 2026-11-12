@@ -29,6 +29,7 @@ function clampWidth(value: number) {
 
 function startDrag(event: PointerEvent) {
 	dragging = true;
+	event.preventDefault();
 	(event.target as HTMLElement).setPointerCapture(event.pointerId);
 }
 
@@ -115,20 +116,19 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 .divider {
-	flex: 0 0 6px;
+	flex: 0 0 3px;
+	height: 90%;
+	align-self: center;
 	background-color: #cccccc;
+	border-radius: 3px;
 	cursor: col-resize;
 	touch-action: none;
+	transition: background-color 100ms ease;
 }
 
 .divider:hover,
 .divider:focus-visible,
 .divider.active {
 	background-color: #396cd8;
-}
-
-.divider:focus-visible {
-	outline: 2px solid #396cd8;
-	outline-offset: 2px;
 }
 </style>

@@ -8,12 +8,14 @@ import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vite";
+import { javaPlanner } from "./scripts/java-planner.mjs";
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
 	plugins: [
+		javaPlanner(),
 		sveltekit({
 			preprocess: vitePreprocess(),
 			compilerOptions: {

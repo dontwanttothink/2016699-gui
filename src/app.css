@@ -22,7 +22,7 @@ body,
 	--subtle: light-dark(#8a8a8a, #7a7a7a);
 	--border: light-dark(#dcdcdc, #3a3a3a);
 	--surface: light-dark(#ffffff, #1f1f1f);
-	--shadow: 0 0 6px rgba(0, 0, 0, 0.1), 0 0 12px rgba(0, 0, 0, 0.06);
+	--shadow: 0 0 8px rgba(0, 0, 0, 0.08);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -65,8 +65,8 @@ textarea {
 }
 
 button {
-	border-radius: 8px;
-	border: 1px solid transparent;
+	border-radius: 0.7em;
+	border: 1px solid var(--border);
 	padding: 0.6em 1.2em;
 	font-size: var(--font-size-md);
 	font-weight: 500;

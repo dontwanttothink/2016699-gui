@@ -4,38 +4,42 @@ import { onMount, tick } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import {
 	createPrerequisiteRow,
+	idProblem,
+	type PrerequisiteProblem,
 	type PrerequisiteRow,
-	parseId,
+	prerequisiteProblems,
 } from "#lib/courseDraft.ts";
 
-type Problem = "notInteger" | "self" | "repeated" | "unknown";
+const PRIORITY: PrerequisiteProblem[] = [
+	"notInteger",
+	"self",
+	"repeated",
+	"unknown",
+];
 
-const PRIORITY: Problem[] = ["notInteger", "self", "repeated", "unknown"];
-
-const MESSAGES: Record<Problem, (unknownCount: number) => string> = {
-	notInteger: () => "Un prerrequisito no es un ID válido.",
-	self: () => "Una materia no puede ser prerrequisito de sí misma.",
-	repeated: () => "Un prerrequisito aparece repetido.",
-	unknown: (count) =>
-		count === 1
-			? "Un prerrequisito no corresponde a ninguna materia."
-			: `${count} prerrequisitos no corresponden a ninguna materia.`,
-};
+const MESSAGES: Record<PrerequisiteProblem, (unknownCount: number) => string> =
+	{
+		notInteger: () => "Un prerrequisito no es un ID válido.",
+		self: () => "Una materia no puede ser prerrequisito de sí misma.",
+		repeated: () => "Un prerrequisito aparece repetido.",
+		unknown: (count) =>
+			count === 1
+				? "Un prerrequisito no corresponde a ninguna materia."
+				: `${count} prerrequisitos no corresponden a ninguna materia.`,
+	};
 
 let {
 	name = $bindable(""),
 	id = $bindable(""),
 	prerequisites = $bindable([]),
-	knownIds,
-	idTaken = false,
+	counts,
 	focusOnMount = false,
 	onremove,
 }: {
 	name?: string;
 	id?: string;
 	prerequisites?: PrerequisiteRow[];
-	knownIds: ReadonlySet<number>;
-	idTaken?: boolean;
+	counts: ReadonlyMap<number, number>;
 	focusOnMount?: boolean;
 	onremove: () => void;
 } = $props();
@@ -69,33 +73,17 @@ function keepSingleLine(event: KeyboardEvent) {
 	if (event.key === "Enter") event.preventDefault();
 }
 
-const ownId = $derived(parseId(id));
-
 const idMessage = $derived.by(() => {
 	if (!touched.has("id")) return null;
-	if (id.trim() !== "" && ownId === null)
-		return "El ID debe ser un número entero.";
-	if (idTaken) return "Esta ID ya la usa otra materia.";
+	const problem = idProblem(id, counts);
+	if (problem === "notInteger") return "El ID debe ser un número entero.";
+	if (problem === "taken") return "Esta ID ya la usa otra materia.";
 	return null;
 });
 
-function problemOf(value: string, index: number): Problem | null {
-	const text = value.trim();
-	if (text === "") return null;
-	const n = parseId(text);
-	if (n === null) return "notInteger";
-	if (n === ownId) return "self";
-	if (prerequisites.findIndex((row) => row.value.trim() === text) !== index)
-		return "repeated";
-	if (!knownIds.has(n)) return "unknown";
-	return null;
-}
+const problems = $derived(prerequisiteProblems(id, prerequisites, counts));
 
-const problems = $derived(
-	prerequisites.map((row, index) => problemOf(row.value, index)),
-);
-
-function shownProblem(index: number): Problem | null {
+function shownProblem(index: number): PrerequisiteProblem | null {
 	return touched.has(prerequisites[index].uid) ? problems[index] : null;
 }
 

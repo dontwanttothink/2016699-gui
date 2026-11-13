@@ -6,15 +6,20 @@ import { MediaQuery } from "svelte/reactivity";
 
 let {
 	body,
+	duration = 500,
 	error = $bindable(""),
 }: {
 	/** Nodos y aristas en DOT, sin el `digraph { }` que los envuelve */
 	body: string;
+	/** Duración en milisegundos de la animación entre un grafo y el siguiente */
+	duration?: number;
 	error?: string;
 } = $props();
 
-const RENDER_DEBOUNCE_MS = 250;
 const FONT = "Figtree Variable";
+
+// Esto es necesario para impedir problemas con las animaciones.
+const debounce = $derived(duration / 2);
 
 const darkScheme = new MediaQuery("prefers-color-scheme: dark");
 const foreground = $derived(darkScheme.current ? "#ffffff" : "#0f0f0f");
@@ -33,9 +38,9 @@ let ready = false;
 onMount(() => {
 	graph = graphviz(el, { fit: true, zoom: true, useWorker: false })
 		.transition(() => {
-			const duration = instant ? 0 : 500;
+			const length = instant ? 0 : duration;
 			instant = false;
-			return transition("graph").duration(duration);
+			return transition("graph").duration(length);
 		})
 		.onerror((message: unknown) => {
 			error = String(message);
@@ -57,8 +62,9 @@ onMount(() => {
 $effect(() => {
 	error = "";
 	const source = dot;
+	const delay = debounce;
 	if (!ready) return;
-	const timer = setTimeout(() => render(source), RENDER_DEBOUNCE_MS);
+	const timer = setTimeout(() => render(source), delay);
 	return () => clearTimeout(timer);
 });
 

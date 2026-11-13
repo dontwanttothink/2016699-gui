@@ -6,6 +6,8 @@ import { avlToDot, heapToDot, listToDot } from "#lib/structureDot.ts";
 import { onSnapshotsChange, readSnapshots } from "#lib/structuresWindow.ts";
 import { structuresAt } from "#lib/verbose.ts";
 
+const STEP_ANIMATION_MS = 120;
+
 let snapshots = $state(readSnapshots());
 let step = $state(0);
 
@@ -49,7 +51,7 @@ function onKeydown(event: KeyboardEvent) {
 						{#if panel.body === ""}
 							<p class="empty">(Vacío)</p>
 						{:else}
-							<Graphviz body={panel.body} />
+							<Graphviz body={panel.body} duration={STEP_ANIMATION_MS} />
 						{/if}
 					</div>
 				</section>

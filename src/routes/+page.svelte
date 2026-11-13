@@ -1,5 +1,5 @@
 <script lang="ts">
-import { GraduationCap, Plus } from "@lucide/svelte";
+import { CircleAlert, GraduationCap, Plus } from "@lucide/svelte";
 import { message } from "@tauri-apps/plugin-dialog";
 import { tick } from "svelte";
 import { MediaQuery } from "svelte/reactivity";
@@ -11,6 +11,8 @@ import {
 	type CourseDraft,
 	checkCourses,
 	createCourseDraft,
+	creditsMessage,
+	creditsProblem,
 	idCounts,
 	toDotBody,
 } from "#lib/courseDraft.ts";
@@ -32,6 +34,15 @@ let addButton: HTMLButtonElement;
 
 const counts = $derived(idCounts(courses));
 
+let maxCredits = $state("20");
+let maxCreditsTouched = $state(false);
+let algorithm = $state<"list" | "heap">("list");
+const maxCreditsError = $derived.by(() => {
+	if (!maxCreditsTouched) return null;
+	const problem = creditsProblem(maxCredits);
+	return problem === null ? null : creditsMessage(problem);
+});
+
 function addCourse() {
 	const course = createCourseDraft();
 	courses.push(course);
@@ -39,26 +50,30 @@ function addCourse() {
 }
 
 async function plan() {
-	if (courses.length === 0) {
-		await message("Agregue al menos una materia.", {
-			title: "Revise las materias",
-			kind: "warning",
-		});
-		return;
-	}
-
-	const { missing, issues } = checkCourses(courses);
 	const problems: string[] = [];
-	if (missing === 1) {
-		problems.push("Una materia no tiene nombre o ID.");
-	} else if (missing > 1) {
-		problems.push(`${missing} materias no tienen nombre o ID.`);
+	if (courses.length === 0) {
+		problems.push("Agregue al menos una materia.");
+	} else {
+		const { missing, issues } = checkCourses(courses);
+		if (missing === 1) {
+			problems.push("Una materia no tiene nombre, ID o créditos.");
+		} else if (missing > 1) {
+			problems.push(`${missing} materias no tienen nombre, ID o créditos.`);
+		}
+		if (issues === 1) {
+			problems.push(
+				"Una materia tiene problemas en su ID, créditos o prerrequisitos.",
+			);
+		} else if (issues > 1) {
+			problems.push(
+				`${issues} materias tienen problemas en su ID, créditos o prerrequisitos.`,
+			);
+		}
 	}
-	if (issues === 1) {
-		problems.push("Una materia tiene problemas en su ID o prerrequisitos.");
-	} else if (issues > 1) {
+	const maxProblem = creditsProblem(maxCredits);
+	if (maxProblem !== null) {
 		problems.push(
-			`${issues} materias tienen problemas en su ID o prerrequisitos.`,
+			`Máximo de créditos por semestre: ${creditsMessage(maxProblem)}`,
 		);
 	}
 	if (problems.length === 0) return;
@@ -95,6 +110,7 @@ function removeCourse(index: number) {
 				<EditableCourse
 					bind:name={course.name}
 					bind:id={course.id}
+					bind:credits={course.credits}
 					bind:prerequisites={course.prerequisites}
 					{counts}
 					focusOnMount={course.uid === newestUid}
@@ -105,6 +121,35 @@ function removeCourse(index: number) {
 				<Plus size={16} aria-hidden="true" />
 				Agregar curso
 			</button>
+			<div class="settings">
+				<label class="setting">
+					<span>Máximo de créditos por semestre</span>
+					<input
+						class:invalid={maxCreditsError !== null}
+						type="text"
+						inputmode="numeric"
+						bind:value={maxCredits}
+						aria-invalid={maxCreditsError !== null ? "true" : undefined}
+						aria-describedby={maxCreditsError !== null
+							? "max-credits-message"
+							: undefined}
+						onblur={() => (maxCreditsTouched = true)}
+					>
+				</label>
+				{#if maxCreditsError}
+					<p class="feedback message" id="max-credits-message">
+						<CircleAlert aria-hidden="true" />
+						{maxCreditsError}
+					</p>
+				{/if}
+				<label class="setting">
+					<span>Algoritmo</span>
+					<select bind:value={algorithm}>
+						<option value="list">Lista</option>
+						<option value="heap">Montículo</option>
+					</select>
+				</label>
+			</div>
 			<button type="button" class="plan" onclick={plan}>Planear</button>
 		</div>
 	{/snippet}
@@ -125,6 +170,47 @@ function removeCourse(index: number) {
 	align-items: center;
 	justify-content: center;
 	color: var(--subtle);
+}
+
+.settings {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	width: 100%;
+	max-width: 24rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--border);
+	font-size: var(--font-size-sm);
+}
+
+.setting {
+	display: flex;
+	align-items: last baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.setting span {
+	color: var(--muted);
+}
+
+.setting input {
+	flex: none;
+	width: 3.5em;
+	text-align: right;
+}
+
+.setting select {
+	font: inherit;
+	color: inherit;
+	background-color: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 0.5em;
+	padding: 0.2em 0.4em;
+}
+
+.message {
+	color: var(--muted);
 }
 
 .plan {

@@ -4,6 +4,8 @@ import { onMount, tick } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import {
 	createPrerequisiteRow,
+	creditsMessage,
+	creditsProblem,
 	idProblem,
 	type PrerequisiteProblem,
 	type PrerequisiteRow,
@@ -31,6 +33,7 @@ const MESSAGES: Record<PrerequisiteProblem, (unknownCount: number) => string> =
 let {
 	name = $bindable(""),
 	id = $bindable(""),
+	credits = $bindable(""),
 	prerequisites = $bindable([]),
 	counts,
 	focusOnMount = false,
@@ -38,6 +41,7 @@ let {
 }: {
 	name?: string;
 	id?: string;
+	credits?: string;
 	prerequisites?: PrerequisiteRow[];
 	counts: ReadonlyMap<number, number>;
 	focusOnMount?: boolean;
@@ -46,6 +50,7 @@ let {
 
 const uid = $props.id();
 const idMessageId = `${uid}-id-message`;
+const creditsMessageId = `${uid}-credits-message`;
 const summaryId = `${uid}-summary`;
 
 const touched = new SvelteSet<string>();
@@ -79,6 +84,14 @@ const idMessage = $derived.by(() => {
 	if (problem === "notInteger") return "El ID debe ser un número entero.";
 	if (problem === "taken") return "Esta ID ya la usa otra materia.";
 	return null;
+});
+
+const creditsError = $derived.by(() => {
+	if (!touched.has("credits")) return null;
+	const problem = creditsProblem(credits);
+	return problem === null || problem === "empty"
+		? null
+		: creditsMessage(problem);
 });
 
 const problems = $derived(prerequisiteProblems(id, prerequisites, counts));
@@ -121,22 +134,42 @@ const summary = $derived.by(() => {
 		></textarea>
 	</div>
 
-	<label class="id">
-		<span>ID</span>
-		<input
-			class:invalid={idMessage !== null}
-			type="text"
-			inputmode="numeric"
-			bind:value={id}
-			aria-invalid={idMessage !== null ? "true" : undefined}
-			aria-describedby={idMessage !== null ? idMessageId : undefined}
-			onblur={() => touched.add("id")}
-		>
-	</label>
+	<div class="fields">
+		<label class="field id-field">
+			<span>ID</span>
+			<input
+				class:invalid={idMessage !== null}
+				type="text"
+				inputmode="numeric"
+				bind:value={id}
+				aria-invalid={idMessage !== null ? "true" : undefined}
+				aria-describedby={idMessage !== null ? idMessageId : undefined}
+				onblur={() => touched.add("id")}
+			>
+		</label>
+		<label class="field credits-field">
+			<span>Créditos</span>
+			<input
+				class:invalid={creditsError !== null}
+				type="text"
+				inputmode="numeric"
+				bind:value={credits}
+				aria-invalid={creditsError !== null ? "true" : undefined}
+				aria-describedby={creditsError !== null ? creditsMessageId : undefined}
+				onblur={() => touched.add("credits")}
+			>
+		</label>
+	</div>
 	{#if idMessage}
 		<p class="feedback message" id={idMessageId}>
 			<CircleAlert aria-hidden="true" />
 			{idMessage}
+		</p>
+	{/if}
+	{#if creditsError}
+		<p class="feedback message" id={creditsMessageId}>
+			<CircleAlert aria-hidden="true" />
+			{creditsError}
 		</p>
 	{/if}
 
@@ -250,20 +283,40 @@ const summary = $derived.by(() => {
 	font-weight: 400;
 }
 
-.id {
+.fields {
+	display: flex;
+	gap: 1rem;
+}
+
+.field {
 	display: flex;
 	align-items: baseline;
 	gap: 0.5rem;
 	font-size: var(--font-size-sm);
 }
 
-.id span {
+.field span {
 	color: var(--muted);
 }
 
-.id input {
+.field input {
 	flex: 1;
 	width: 0;
+}
+
+.id-field {
+	flex: 1;
+	min-width: 0;
+}
+
+.credits-field {
+	flex: none;
+}
+
+.credits-field input {
+	flex: none;
+	width: 2em;
+	text-align: right;
 }
 
 .message {

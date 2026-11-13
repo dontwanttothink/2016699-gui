@@ -59,11 +59,6 @@ const sections: { title: string; components: Component[] }[] = [
 	padding: 1.5rem;
 }
 
-h1 {
-	margin: 0 0 0.5rem;
-	font-size: 1.5rem;
-}
-
 h2 {
 	margin: 2rem 0 0.5rem;
 	font-size: var(--font-size-lg);

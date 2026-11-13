@@ -47,7 +47,7 @@ export function structuresAt(snapshots: Snapshot[], step: number): Structures {
 }
 
 export function parseVerbose(text: string): VerboseOutput {
-	const lines = text.split("\n");
+	const lines = text.split(/\r?\n/);
 	const snapshots: Snapshot[] = [];
 	let semesters: number[][] = [];
 

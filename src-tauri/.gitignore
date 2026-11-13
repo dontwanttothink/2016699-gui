@@ -8,3 +8,6 @@
 
 # Native planner binary
 /binaries/
+
+# Visual C++ runtime DLLs bundled on Windows
+/redist/

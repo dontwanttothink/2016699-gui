@@ -1,12 +1,14 @@
 <script lang="ts">
-import type { PlannedCourse } from "#lib/courseDraft.ts";
+import { Network } from "@lucide/svelte";
+import { creditsLabel, type PlannedCourse } from "#lib/courseDraft.ts";
 import { getPlanResult } from "#lib/planResult.svelte.ts";
+import { openStructuresWindow } from "#lib/structuresWindow.ts";
 import { goto } from "$app/navigation";
 
-const semesters = $derived(getPlanResult());
+const plan = $derived(getPlanResult());
 
 $effect(() => {
-	if (semesters === null) goto("/", { replaceState: true });
+	if (plan === null) goto("/", { replaceState: true });
 });
 
 function totalCredits(semester: PlannedCourse[]): number {
@@ -14,13 +16,20 @@ function totalCredits(semester: PlannedCourse[]): number {
 }
 </script>
 
-{#if semesters}
+{#if plan}
 	<main class="results">
 		<header>
 			<button type="button" onclick={() => goto("/")}>Volver</button>
+			<button
+				type="button"
+				onclick={() => openStructuresWindow(plan.snapshots)}
+			>
+				<Network size={16} aria-hidden="true" />
+				Ver estructuras
+			</button>
 		</header>
 		<div class="semesters">
-			{#each semesters as semester, index (index)}
+			{#each plan.semesters as semester, index (index)}
 				<section class="semester">
 					<h2>{index + 1}</h2>
 					<ul class="courses">
@@ -28,12 +37,12 @@ function totalCredits(semester: PlannedCourse[]): number {
 							<li class="course">
 								<p class="course-name">{course.name}</p>
 								<p class="course-meta">
-									ID {course.id} · {course.credits} créditos
+									ID {course.id} · {creditsLabel(course.credits)}
 								</p>
 							</li>
 						{/each}
 					</ul>
-					<p class="total">Total: {totalCredits(semester)} créditos</p>
+					<p class="total">{creditsLabel(totalCredits(semester))}</p>
 				</section>
 			{/each}
 		</div>
@@ -46,8 +55,12 @@ function totalCredits(semester: PlannedCourse[]): number {
 	flex-direction: column;
 	gap: 1rem;
 	height: 100vh;
-	box-sizing: border-box;
-	padding: 1.5rem;
+}
+
+header {
+	display: flex;
+	justify-content: space-between;
+	padding: 1.5rem 1.5rem 0;
 }
 
 .semesters {
@@ -56,7 +69,7 @@ function totalCredits(semester: PlannedCourse[]): number {
 	display: flex;
 	gap: 1rem;
 	overflow-x: auto;
-	padding: 0.25rem;
+	padding: 0.25rem 1.5rem 1.5rem;
 }
 
 .semester {

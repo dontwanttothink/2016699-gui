@@ -18,6 +18,34 @@ export type Snapshot = ListSnapshot | HeapSnapshot | AvlSnapshot;
 
 export type VerboseOutput = { snapshots: Snapshot[]; semesters: number[][] };
 
+export type Structures = {
+	[K in Snapshot["kind"]]?: Extract<Snapshot, { kind: K }>;
+};
+
+/**
+ * Descarta los snapshots que no cambian su estructura respecto al anterior del
+ * mismo tipo. Solo se comparan contra el mismo tipo porque el heap y el AVL se
+ * intercalan, y una estructura que vuelve a un estado anterior sí es un paso.
+ */
+export function withoutRepeats(snapshots: Snapshot[]): Snapshot[] {
+	const latest = new Map<Snapshot["kind"], string>();
+	return snapshots.filter((snapshot) => {
+		const serialized = JSON.stringify(snapshot);
+		if (latest.get(snapshot.kind) === serialized) return false;
+		latest.set(snapshot.kind, serialized);
+		return true;
+	});
+}
+
+/** El estado más reciente de cada estructura hasta el paso dado, inclusive. */
+export function structuresAt(snapshots: Snapshot[], step: number): Structures {
+	const structures: Structures = {};
+	for (const snapshot of snapshots.slice(0, step + 1)) {
+		Object.assign(structures, { [snapshot.kind]: snapshot });
+	}
+	return structures;
+}
+
 export function parseVerbose(text: string): VerboseOutput {
 	const lines = text.split("\n");
 	const snapshots: Snapshot[] = [];

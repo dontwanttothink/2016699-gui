@@ -2,16 +2,28 @@
 import { graphviz } from "d3-graphviz";
 import { transition } from "d3-transition";
 import { onMount } from "svelte";
+import { MediaQuery } from "svelte/reactivity";
 
 let {
-	dot,
+	body,
 	error = $bindable(""),
 }: {
-	dot: string;
+	/** Nodos y aristas en DOT, sin el `digraph { }` que los envuelve */
+	body: string;
 	error?: string;
 } = $props();
 
 const RENDER_DEBOUNCE_MS = 250;
+const FONT = "Figtree Variable";
+
+const darkScheme = new MediaQuery("prefers-color-scheme: dark");
+const foreground = $derived(darkScheme.current ? "#ffffff" : "#0f0f0f");
+const style = $derived(
+	`color="${foreground}", fontcolor="${foreground}", fontname="${FONT}"`,
+);
+const dot = $derived(
+	`digraph { bgcolor=transparent; graph [${style}]; node [${style}]; edge [${style}]; ${body}\n}`,
+);
 
 let el: HTMLElement;
 let graph: ReturnType<typeof graphviz> | undefined = $state.raw();
@@ -19,7 +31,7 @@ let instant = false;
 let ready = false;
 
 onMount(() => {
-	graph = graphviz(el, { fit: true, zoom: true })
+	graph = graphviz(el, { fit: true, zoom: true, useWorker: false })
 		.transition(() => {
 			const duration = instant ? 0 : 500;
 			instant = false;

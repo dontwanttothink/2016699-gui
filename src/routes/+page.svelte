@@ -1,40 +1,33 @@
 <script lang="ts">
-import { CircleAlert, GraduationCap, Plus } from "@lucide/svelte";
+import { CircleAlert, File, GraduationCap, Plus } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { message } from "@tauri-apps/plugin-dialog";
 import { tick } from "svelte";
-import { MediaQuery } from "svelte/reactivity";
 import EditableCourse from "#components/EditableCourse.svelte";
 import Graphviz from "#components/Graphviz.svelte";
 import SplitPane from "#components/SplitPane.svelte";
 import {
-	checkCourses,
 	createCourseDraft,
 	creditsMessage,
 	creditsProblem,
 	idCounts,
 	MAX_CREDITS,
+	planProblems,
 	semesterLimit,
 	toDotBody,
 	toPlannedSemesters,
 	toPlannerInput,
 } from "#lib/courseDraft.ts";
 import { editor } from "#lib/editor.svelte.ts";
+import { loadCoursesFile } from "#lib/loadCourses.ts";
 import { setPlanResult } from "#lib/planResult.svelte.ts";
-import { parseVerbose } from "#lib/verbose.ts";
+import { parseVerbose, withoutRepeats } from "#lib/verbose.ts";
 import { goto } from "$app/navigation";
 
 type PlannerError = { kind: "impossible" | "failed"; message: string };
 
-const darkScheme = new MediaQuery("prefers-color-scheme: dark");
-const foreground = $derived(darkScheme.current ? "#ffffff" : "#0f0f0f");
-const font = "Figtree Variable";
-
 const courses = editor.courses;
 const body = $derived(toDotBody(courses));
-const dot = $derived(
-	`digraph { bgcolor=transparent; graph [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; node [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; edge [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; ${body}\n}`,
-);
 let errorMsg = $state("");
 
 let newestUid = $state<string | null>(null);
@@ -58,34 +51,9 @@ function addCourse() {
 }
 
 async function plan() {
-	const problems: string[] = [];
-	if (courses.length === 0) {
-		problems.push("Agregue al menos una materia.");
-	} else {
-		const { missing, issues } = checkCourses(courses, limit);
-		if (missing === 1) {
-			problems.push("Una materia no tiene nombre, ID o créditos.");
-		} else if (missing > 1) {
-			problems.push(`${missing} materias no tienen nombre, ID o créditos.`);
-		}
-		if (issues === 1) {
-			problems.push(
-				"Una materia tiene problemas en su ID, créditos o prerrequisitos.",
-			);
-		} else if (issues > 1) {
-			problems.push(
-				`${issues} materias tienen problemas en su ID, créditos o prerrequisitos.`,
-			);
-		}
-	}
-	const maxProblem = creditsProblem(editor.maxCredits, MAX_CREDITS);
-	if (maxProblem !== null) {
-		problems.push(
-			`Máximo de créditos por semestre: ${creditsMessage(maxProblem, MAX_CREDITS)}`,
-		);
-	}
+	const problems = planProblems(courses, editor.maxCredits);
 	if (problems.length > 0) {
-		await message(`${problems.join("\n")}`, {
+		await message(problems.join("\n"), {
 			title: "Revise las materias",
 			kind: "warning",
 		});
@@ -110,7 +78,11 @@ async function plan() {
 		return;
 	}
 
-	setPlanResult(toPlannedSemesters(parseVerbose(output).semesters, courses));
+	const { semesters, snapshots } = parseVerbose(output);
+	setPlanResult({
+		semesters: toPlannedSemesters(semesters, courses),
+		snapshots: withoutRepeats(snapshots),
+	});
 	await goto("/results");
 }
 
@@ -130,7 +102,7 @@ function removeCourse(index: number) {
 				<GraduationCap size={96} strokeWidth={1.25} aria-hidden="true" />
 			</div>
 		{:else}
-			<Graphviz {dot} bind:error={errorMsg} />
+			<Graphviz {body} bind:error={errorMsg} />
 		{/if}
 	{/snippet}
 
@@ -152,6 +124,13 @@ function removeCourse(index: number) {
 				<Plus size={16} aria-hidden="true" />
 				Agregar curso
 			</button>
+			{#if courses.length === 0}
+				<p class="or">o</p>
+				<button type="button" onclick={loadCoursesFile}>
+					<File size={16} aria-hidden="true" />
+					Cargar archivo
+				</button>
+			{/if}
 			<div class="settings">
 				<label class="setting">
 					<span>Máximo de créditos por semestre</span>
@@ -200,6 +179,11 @@ function removeCourse(index: number) {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	color: var(--subtle);
+}
+
+.or {
+	margin: -0.5rem 0;
 	color: var(--subtle);
 }
 

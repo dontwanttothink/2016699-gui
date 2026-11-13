@@ -1,3 +1,5 @@
+import type { Course } from "#lib/curriculum.ts";
+
 export type PrerequisiteRow = { uid: string; value: string };
 
 export type CourseDraft = {
@@ -66,6 +68,10 @@ export function semesterLimit(maxCredits: string): number {
 		: MAX_CREDITS;
 }
 
+export function creditsLabel(n: number): string {
+	return `${n} ${n === 1 ? "crédito" : "créditos"}`;
+}
+
 export function creditsMessage(
 	problem: CreditsProblem,
 	semesterLimit: number,
@@ -122,21 +128,18 @@ export function checkCourses(
 	courses: CourseDraft[],
 	semesterLimit: number,
 ): {
-	missing: number;
+	missing: { name: number; id: number; credits: number };
 	issues: number;
 } {
 	const counts = idCounts(courses);
 
-	let missing = 0;
+	const missing = { name: 0, id: 0, credits: 0 };
 	let issues = 0;
 	for (const course of courses) {
 		const credits = creditsProblem(course.credits, semesterLimit);
-		if (
-			course.name.trim() === "" ||
-			course.id.trim() === "" ||
-			credits === "empty"
-		)
-			missing++;
+		if (course.name.trim() === "") missing.name++;
+		if (course.id.trim() === "") missing.id++;
+		if (credits === "empty") missing.credits++;
 		const hasIssue =
 			idProblem(course.id, counts) !== null ||
 			(credits !== null && credits !== "empty") ||
@@ -146,6 +149,47 @@ export function checkCourses(
 		if (hasIssue) issues++;
 	}
 	return { missing, issues };
+}
+
+function coursesCount(n: number): string {
+	return n === 1 ? "Una materia" : `${n} materias`;
+}
+
+export function planProblems(
+	courses: CourseDraft[],
+	maxCredits: string,
+): string[] {
+	const problems: string[] = [];
+
+	if (courses.length === 0) {
+		problems.push("Agregue al menos una materia.");
+	} else {
+		const { missing, issues } = checkCourses(
+			courses,
+			semesterLimit(maxCredits),
+		);
+		const missingFields = [
+			["nombre", missing.name],
+			["ID", missing.id],
+			["créditos", missing.credits],
+		] as const;
+		for (const [field, n] of missingFields) {
+			if (n > 0) problems.push(`${coursesCount(n)} sin ${field}.`);
+		}
+		if (issues > 0) {
+			problems.push(
+				`${coursesCount(issues)} con problemas en su ID, créditos o prerrequisitos.`,
+			);
+		}
+	}
+
+	const maxProblem = creditsProblem(maxCredits, MAX_CREDITS);
+	if (maxProblem !== null) {
+		problems.push(
+			`Máximo de créditos por semestre: ${creditsMessage(maxProblem, MAX_CREDITS)}`,
+		);
+	}
+	return problems;
 }
 
 export function toPlannerInput(courses: CourseDraft[]): string {
@@ -168,6 +212,25 @@ export function toPlannerInput(courses: CourseDraft[]): string {
 			return `${id}$${credits}$${name}$${dependents.join(",")}$${prerequisites.join(",")}`;
 		})
 		.join("\n");
+}
+
+export function toCourseDrafts(courses: Course[]): CourseDraft[] {
+	return courses.map((course) => {
+		const prerequisites = new Set(course.prerequisites);
+		for (const other of courses) {
+			if (other.dependents.includes(course.id)) prerequisites.add(other.id);
+		}
+		return {
+			uid: crypto.randomUUID(),
+			id: String(course.id),
+			name: course.name,
+			credits: String(course.credits),
+			prerequisites: [...prerequisites].map((id) => ({
+				uid: crypto.randomUUID(),
+				value: String(id),
+			})),
+		};
+	});
 }
 
 export type PlannedCourse = { id: number; name: string; credits: number };

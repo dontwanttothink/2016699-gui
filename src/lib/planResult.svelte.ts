@@ -1,11 +1,17 @@
 import type { PlannedCourse } from "#lib/courseDraft.ts";
+import type { Snapshot } from "#lib/verbose.ts";
 
-let semesters = $state<PlannedCourse[][] | null>(null);
+export type PlanResult = {
+	semesters: PlannedCourse[][];
+	snapshots: Snapshot[];
+};
 
-export function setPlanResult(plan: PlannedCourse[][]) {
-	semesters = plan;
+let result = $state.raw<PlanResult | null>(null);
+
+export function setPlanResult(plan: PlanResult) {
+	result = plan;
 }
 
-export function getPlanResult(): PlannedCourse[][] | null {
-	return semesters;
+export function getPlanResult(): PlanResult | null {
+	return result;
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { graphviz } from "d3-graphviz";
+import { transition } from "d3-transition";
 import { onMount } from "svelte";
 
 let {
@@ -12,15 +13,23 @@ let {
 
 let el: HTMLElement;
 let graph: ReturnType<typeof graphviz> | undefined = $state.raw();
+let instant = false;
 
 onMount(() => {
-	graph = graphviz(el, { fit: true, zoom: true }).onerror(
-		(message: unknown) => {
+	graph = graphviz(el, { fit: true, zoom: true })
+		.transition(() => {
+			const duration = instant ? 0 : 500;
+			instant = false;
+			return transition("graph").duration(duration);
+		})
+		.onerror((message: unknown) => {
 			error = String(message);
-		},
-	);
+		});
 
-	const observer = new ResizeObserver(() => render(dot));
+	const observer = new ResizeObserver(() => {
+		instant = true;
+		render(dot);
+	});
 	observer.observe(el);
 
 	return () => {

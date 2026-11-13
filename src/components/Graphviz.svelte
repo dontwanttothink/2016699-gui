@@ -11,9 +11,12 @@ let {
 	error?: string;
 } = $props();
 
+const RENDER_DEBOUNCE_MS = 250;
+
 let el: HTMLElement;
 let graph: ReturnType<typeof graphviz> | undefined = $state.raw();
 let instant = false;
+let ready = false;
 
 onMount(() => {
 	graph = graphviz(el, { fit: true, zoom: true })
@@ -28,6 +31,7 @@ onMount(() => {
 
 	const observer = new ResizeObserver(() => {
 		instant = true;
+		ready = true;
 		render(dot);
 	});
 	observer.observe(el);
@@ -40,7 +44,10 @@ onMount(() => {
 
 $effect(() => {
 	error = "";
-	render(dot);
+	const source = dot;
+	if (!ready) return;
+	const timer = setTimeout(() => render(source), RENDER_DEBOUNCE_MS);
+	return () => clearTimeout(timer);
 });
 
 function render(src: string) {

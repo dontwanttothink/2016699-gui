@@ -170,6 +170,27 @@ export function toPlannerInput(courses: CourseDraft[]): string {
 		.join("\n");
 }
 
+export type PlannedCourse = { id: number; name: string; credits: number };
+
+export function toPlannedSemesters(
+	semesters: number[][],
+	courses: CourseDraft[],
+): PlannedCourse[][] {
+	const byId = new Map<number, PlannedCourse>();
+	for (const course of courses) {
+		const id = parseInteger(course.id);
+		const credits = parseInteger(course.credits);
+		if (id !== null && credits !== null)
+			byId.set(id, { id, name: course.name.trim(), credits });
+	}
+	return semesters.map((semester) =>
+		semester.flatMap((id) => {
+			const course = byId.get(id);
+			return course ? [course] : [];
+		}),
+	);
+}
+
 function quote(text: string): string {
 	return `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }

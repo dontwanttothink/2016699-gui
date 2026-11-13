@@ -1,11 +1,11 @@
-import type { VerboseOutput } from "#lib/verbose.ts";
+import type { PlannedCourse } from "#lib/courseDraft.ts";
 
-let result = $state<VerboseOutput | null>(null);
+let semesters = $state<PlannedCourse[][] | null>(null);
 
-export function setPlanResult(output: VerboseOutput) {
-	result = output;
+export function setPlanResult(plan: PlannedCourse[][]) {
+	semesters = plan;
 }
 
-export function getPlanResult(): VerboseOutput | null {
-	return result;
+export function getPlanResult(): PlannedCourse[][] | null {
+	return semesters;
 }

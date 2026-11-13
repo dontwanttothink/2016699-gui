@@ -59,7 +59,7 @@ const summaryId = `${uid}-summary`;
 const touched = new SvelteSet<string>();
 let nameInput: HTMLTextAreaElement;
 let addButton: HTMLButtonElement;
-const rowInputs: Record<string, HTMLInputElement | undefined> = {};
+const rowInputs: Record<string, HTMLInputElement | undefined> = $state({});
 
 onMount(() => {
 	if (focusOnMount) nameInput.focus();

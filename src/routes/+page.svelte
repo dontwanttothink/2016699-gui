@@ -16,6 +16,7 @@ import {
 	MAX_CREDITS,
 	semesterLimit,
 	toDotBody,
+	toPlannedSemesters,
 	toPlannerInput,
 } from "#lib/courseDraft.ts";
 import { editor } from "#lib/editor.svelte.ts";
@@ -109,7 +110,7 @@ async function plan() {
 		return;
 	}
 
-	setPlanResult(parseVerbose(output));
+	setPlanResult(toPlannedSemesters(parseVerbose(output).semesters, courses));
 	await goto("/results");
 }
 

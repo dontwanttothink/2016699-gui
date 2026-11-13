@@ -8,6 +8,10 @@
             {
               "appearance" : "dark",
               "value" : "system-light"
+            },
+            {
+              "appearance" : "tinted",
+              "value" : "system-light"
             }
           ],
           "image-name" : "graduation-cap.svg",

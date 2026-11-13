@@ -10,6 +10,7 @@ const LOAD_MENU_ID: &str = "load-courses";
 const LOAD_EVENT: &str = "load-courses";
 const MAIN_WINDOW: &str = "main";
 const STRUCTURES_WINDOW: &str = "structures";
+const ACKNOWLEDGEMENTS_WINDOW: &str = "acknowledgements";
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -102,22 +103,39 @@ async fn pick_courses_file(app: tauri::AppHandle) -> Result<Option<String>, Stri
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-async fn open_structures_window(app: AppHandle) -> tauri::Result<()> {
-    if let Some(window) = app.get_webview_window(STRUCTURES_WINDOW) {
+/// Abre la ventana secundaria `label`, o le da el foco si ya está abierta. La
+/// ventana nace oculta: el diseño de la interfaz la muestra al terminar de cargar.
+fn open_secondary_window(
+    app: &AppHandle,
+    label: &str,
+    title: &str,
+    (width, height): (f64, f64),
+) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window(label) {
         return window.set_focus();
     }
-    WebviewWindowBuilder::new(
-        &app,
-        STRUCTURES_WINDOW,
-        WebviewUrl::App("structures".into()),
-    )
-    .title("Estructuras")
-    .inner_size(900.0, 600.0)
-    .min_inner_size(500.0, 300.0)
-    .visible(false)
-    .build()?;
+    WebviewWindowBuilder::new(app, label, WebviewUrl::App(label.into()))
+        .title(title)
+        .inner_size(width, height)
+        .min_inner_size(500.0, 300.0)
+        .visible(false)
+        .build()?;
     Ok(())
+}
+
+#[tauri::command]
+async fn open_structures_window(app: AppHandle) -> tauri::Result<()> {
+    open_secondary_window(&app, STRUCTURES_WINDOW, "Estructuras", (900.0, 600.0))
+}
+
+#[tauri::command]
+async fn open_acknowledgements_window(app: AppHandle) -> tauri::Result<()> {
+    open_secondary_window(
+        &app,
+        ACKNOWLEDGEMENTS_WINDOW,
+        "Agradecimientos",
+        (700.0, 700.0),
+    )
 }
 
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
@@ -204,7 +222,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_planner,
             pick_courses_file,
-            open_structures_window
+            open_structures_window,
+            open_acknowledgements_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

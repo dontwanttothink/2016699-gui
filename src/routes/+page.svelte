@@ -1,5 +1,11 @@
 <script lang="ts">
-import { CircleAlert, File, GraduationCap, Plus } from "@lucide/svelte";
+import {
+	CircleAlert,
+	ExternalLink,
+	File,
+	GraduationCap,
+	Plus,
+} from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { message } from "@tauri-apps/plugin-dialog";
 import { tick } from "svelte";
@@ -86,6 +92,11 @@ async function plan() {
 	await goto("/results");
 }
 
+function openAcknowledgements(event: MouseEvent) {
+	event.preventDefault();
+	invoke("open_acknowledgements_window").catch(console.error);
+}
+
 function removeCourse(index: number) {
 	courses.splice(index, 1);
 	tick().then(() => {
@@ -161,6 +172,14 @@ function removeCourse(index: number) {
 				</label>
 			</div>
 			<button type="button" class="plan" onclick={plan}>Planear</button>
+			<a
+				class="acknowledgements"
+				href="/acknowledgements"
+				onclick={openAcknowledgements}
+			>
+				<ExternalLink size={14} aria-hidden="true" />
+				Agradecimientos
+			</a>
 		</div>
 	{/snippet}
 </SplitPane>
@@ -239,6 +258,21 @@ function removeCourse(index: number) {
 	color: #ffffff;
 	background-color: var(--accent);
 	border-color: var(--accent);
+}
+
+.acknowledgements {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	font-size: var(--font-size-sm);
+	font-weight: 400;
+	color: var(--subtle);
+	text-decoration: none;
+}
+
+.acknowledgements:hover {
+	color: var(--muted);
+	text-decoration: underline;
 }
 
 .plan:active {

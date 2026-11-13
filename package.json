@@ -34,6 +34,7 @@
 		"@tauri-apps/cli": "^2",
 		"@types/d3-graphviz": "^3.1.0",
 		"@types/d3-transition": "^3.0.9",
+		"@types/node": "^26.6.6",
 		"svelte": "^5.56.3",
 		"svelte-check": "^4.6.0",
 		"typescript": "~6.0.3",

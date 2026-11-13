@@ -26,7 +26,7 @@ jobs:
       matrix:
         include:
           - name: macOS arm64
-            os: macos-26
+            os: xcode-27
             artifact: macos-arm64
             bundles: app
           - name: Linux x86_64
@@ -59,6 +59,10 @@ jobs:
           java-version: "25"
           distribution: "graalvm-community"
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show the Xcode version
+        if: runner.os == 'macOS'
+        run: xcodebuild -version
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -108,10 +112,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build the app
+        if: runner.os != 'Windows'
         working-directory: gui
         env:
           # Ad-hoc signature: Apple Silicon refuses to run unsigned bundles.
           APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
+        run: pnpm tauri build --bundles ${{ matrix.bundles }}
+
+      - name: Build the app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: gui
         run: pnpm tauri build --bundles ${{ matrix.bundles }}
 
       # upload-artifact drops file permissions, so the .app is zipped first.

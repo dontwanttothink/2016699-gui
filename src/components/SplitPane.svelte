@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 
-const MIN_WIDTH = 40;
-const MAX_WIDTH = 65;
+const MIN_WIDTH = 10;
+const MAX_WIDTH = 80;
 const KEY_STEP = 5;
 
 const {
@@ -64,7 +64,7 @@ function onKeyDown(event: KeyboardEvent) {
 </script>
 
 <main class="split" bind:this={container}>
-	<div id={paneId} class="pane left" style="--left-width: {leftWidth}%">
+	<div id={paneId} class="pane left" style="width: {leftWidth}%">
 		{@render left()}
 	</div>
 
@@ -75,7 +75,7 @@ function onKeyDown(event: KeyboardEvent) {
 		class:active={dragging}
 		role="separator"
 		tabindex="0"
-		aria-label="Ajustar ancho de los paneles"
+		aria-label="Resize panels"
 		aria-orientation="vertical"
 		aria-controls={paneId}
 		aria-valuenow={Math.round(leftWidth)}
@@ -106,9 +106,6 @@ function onKeyDown(event: KeyboardEvent) {
 	min-width: 0;
 }
 
-.pane.left {
-	width: var(--left-width);
-}
 .pane.right {
 	flex: 1;
 	display: flex;
@@ -118,8 +115,8 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 .divider {
-	flex: 0 0 9px;
-	background-color: transparent;
+	flex: 0 0 6px;
+	background-color: #cccccc;
 	cursor: col-resize;
 	touch-action: none;
 }
@@ -127,24 +124,11 @@ function onKeyDown(event: KeyboardEvent) {
 .divider:hover,
 .divider:focus-visible,
 .divider.active {
-	background-color: #91b9e9;
+	background-color: #396cd8;
 }
 
 .divider:focus-visible {
 	outline: 2px solid #396cd8;
 	outline-offset: 2px;
-}
-@media (max-width: 740px) {
-	.split {
-		display: grid;
-		gap: 10px;
-		height: auto;
-	}
-	.pane.left {
-		width: 100%;
-	}
-	.divider {
-		display: none;
-	}
 }
 </style>

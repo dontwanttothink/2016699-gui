@@ -96,12 +96,12 @@ jobs:
           cp "cli/app/build/native/nativeCompile/graduation$ext" \
             "gui/src-tauri/binaries/graduation-$triple$ext"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
           package_json_file: gui/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -110,6 +110,11 @@ jobs:
       - name: Install frontend dependencies
         working-directory: gui
         run: pnpm install --frozen-lockfile
+
+      # Works around actool failing with "Bad file descriptor" under Tauri.
+      - name: Use the actool wrapper
+        if: runner.os == 'macOS'
+        run: echo "$GITHUB_WORKSPACE/gui/scripts/macos" >> "$GITHUB_PATH"
 
       - name: Build the app
         if: runner.os != 'Windows'

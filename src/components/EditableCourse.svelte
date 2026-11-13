@@ -1,5 +1,5 @@
 <script lang="ts">
-import { CircleAlert, Plus, Trash2, X } from "@lucide/svelte";
+import { CircleAlert, Plus, Trash, X } from "@lucide/svelte";
 import { onMount, tick } from "svelte";
 import { SvelteSet } from "svelte/reactivity";
 import {
@@ -128,7 +128,7 @@ const summary = $derived.by(() => {
 		aria-label="Eliminar materia"
 		onclick={onremove}
 	>
-		<Trash2 size={16} aria-hidden="true" />
+		<Trash size={16} aria-hidden="true" />
 	</button>
 
 	<div class="name-field" data-value={name}>

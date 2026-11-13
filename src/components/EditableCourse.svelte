@@ -10,6 +10,7 @@ import {
 	type PrerequisiteProblem,
 	type PrerequisiteRow,
 	prerequisiteProblems,
+	stripUnsafeName,
 } from "#lib/courseDraft.ts";
 
 const PRIORITY: PrerequisiteProblem[] = [
@@ -36,6 +37,7 @@ let {
 	credits = $bindable(""),
 	prerequisites = $bindable([]),
 	counts,
+	semesterLimit,
 	focusOnMount = false,
 	onremove,
 }: {
@@ -44,6 +46,7 @@ let {
 	credits?: string;
 	prerequisites?: PrerequisiteRow[];
 	counts: ReadonlyMap<number, number>;
+	semesterLimit: number;
 	focusOnMount?: boolean;
 	onremove: () => void;
 } = $props();
@@ -78,6 +81,12 @@ function keepSingleLine(event: KeyboardEvent) {
 	if (event.key === "Enter") event.preventDefault();
 }
 
+function cleanName(event: Event) {
+	const field = event.currentTarget as HTMLTextAreaElement;
+	name = stripUnsafeName(field.value);
+	field.value = name;
+}
+
 const idMessage = $derived.by(() => {
 	if (!touched.has("id")) return null;
 	const problem = idProblem(id, counts);
@@ -88,10 +97,10 @@ const idMessage = $derived.by(() => {
 
 const creditsError = $derived.by(() => {
 	if (!touched.has("credits")) return null;
-	const problem = creditsProblem(credits);
+	const problem = creditsProblem(credits, semesterLimit);
 	return problem === null || problem === "empty"
 		? null
-		: creditsMessage(problem);
+		: creditsMessage(problem, semesterLimit);
 });
 
 const problems = $derived(prerequisiteProblems(id, prerequisites, counts));
@@ -129,7 +138,8 @@ const summary = $derived.by(() => {
 			rows="1"
 			placeholder="Nombre"
 			aria-label="Nombre de la materia"
-			bind:value={name}
+			value={name}
+			oninput={cleanName}
 			onkeydown={keepSingleLine}
 		></textarea>
 	</div>

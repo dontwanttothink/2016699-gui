@@ -19,7 +19,11 @@ export type PrerequisiteProblem =
 	| "repeated"
 	| "unknown";
 
-export type CreditsProblem = "empty" | "notInteger" | "outOfRange";
+export type CreditsProblem =
+	| "empty"
+	| "notInteger"
+	| "outOfRange"
+	| "exceedsSemester";
 
 export function createPrerequisiteRow(): PrerequisiteRow {
 	return { uid: crypto.randomUUID(), value: "" };
@@ -35,19 +39,37 @@ export function createCourseDraft(): CourseDraft {
 	};
 }
 
+export function stripUnsafeName(text: string): string {
+	return text.replace(/[$\r\n]/g, "");
+}
+
 export function parseInteger(text: string): number | null {
 	const trimmed = text.trim();
 	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
 }
 
-export function creditsProblem(text: string): CreditsProblem | null {
+export function creditsProblem(
+	text: string,
+	semesterLimit: number,
+): CreditsProblem | null {
 	if (text.trim() === "") return "empty";
 	const n = parseInteger(text);
 	if (n === null) return "notInteger";
-	return n < MIN_CREDITS || n > MAX_CREDITS ? "outOfRange" : null;
+	if (n < MIN_CREDITS || n > MAX_CREDITS) return "outOfRange";
+	return n > semesterLimit ? "exceedsSemester" : null;
 }
 
-export function creditsMessage(problem: CreditsProblem): string {
+export function semesterLimit(maxCredits: string): number {
+	const n = parseInteger(maxCredits);
+	return n !== null && creditsProblem(maxCredits, MAX_CREDITS) === null
+		? n
+		: MAX_CREDITS;
+}
+
+export function creditsMessage(
+	problem: CreditsProblem,
+	semesterLimit: number,
+): string {
 	switch (problem) {
 		case "empty":
 			return "Ingrese un número de créditos.";
@@ -55,6 +77,8 @@ export function creditsMessage(problem: CreditsProblem): string {
 			return "Los créditos deben ser un número entero.";
 		case "outOfRange":
 			return `Los créditos deben estar entre ${MIN_CREDITS} y ${MAX_CREDITS}.`;
+		case "exceedsSemester":
+			return `Los créditos no pueden superar el máximo por semestre (${semesterLimit}).`;
 	}
 }
 
@@ -94,7 +118,10 @@ export function prerequisiteProblems(
 	});
 }
 
-export function checkCourses(courses: CourseDraft[]): {
+export function checkCourses(
+	courses: CourseDraft[],
+	semesterLimit: number,
+): {
 	missing: number;
 	issues: number;
 } {
@@ -103,7 +130,7 @@ export function checkCourses(courses: CourseDraft[]): {
 	let missing = 0;
 	let issues = 0;
 	for (const course of courses) {
-		const credits = creditsProblem(course.credits);
+		const credits = creditsProblem(course.credits, semesterLimit);
 		if (
 			course.name.trim() === "" ||
 			course.id.trim() === "" ||
@@ -119,6 +146,28 @@ export function checkCourses(courses: CourseDraft[]): {
 		if (hasIssue) issues++;
 	}
 	return { missing, issues };
+}
+
+export function toPlannerInput(courses: CourseDraft[]): string {
+	const rows = courses.flatMap((course) => {
+		const id = parseInteger(course.id);
+		const credits = parseInteger(course.credits);
+		if (id === null || credits === null) return [];
+		const prerequisites = course.prerequisites.flatMap((row) => {
+			const n = parseInteger(row.value);
+			return n === null ? [] : [n];
+		});
+		return [{ id, credits, name: course.name.trim(), prerequisites }];
+	});
+
+	return rows
+		.map(({ id, credits, name, prerequisites }) => {
+			const dependents = rows
+				.filter((other) => other.prerequisites.includes(id))
+				.map((other) => other.id);
+			return `${id}$${credits}$${name}$${dependents.join(",")}$${prerequisites.join(",")}`;
+		})
+		.join("\n");
 }
 
 function quote(text: string): string {

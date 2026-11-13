@@ -1,27 +1,35 @@
 <script lang="ts">
 import { CircleAlert, GraduationCap, Plus } from "@lucide/svelte";
+import { invoke } from "@tauri-apps/api/core";
 import { message } from "@tauri-apps/plugin-dialog";
 import { tick } from "svelte";
 import { MediaQuery } from "svelte/reactivity";
-// import { invoke } from "@tauri-apps/api/core";
 import EditableCourse from "#components/EditableCourse.svelte";
 import Graphviz from "#components/Graphviz.svelte";
 import SplitPane from "#components/SplitPane.svelte";
 import {
-	type CourseDraft,
 	checkCourses,
 	createCourseDraft,
 	creditsMessage,
 	creditsProblem,
 	idCounts,
+	MAX_CREDITS,
+	semesterLimit,
 	toDotBody,
+	toPlannerInput,
 } from "#lib/courseDraft.ts";
+import { editor } from "#lib/editor.svelte.ts";
+import { setPlanResult } from "#lib/planResult.svelte.ts";
+import { parseVerbose } from "#lib/verbose.ts";
+import { goto } from "$app/navigation";
+
+type PlannerError = { kind: "impossible" | "failed"; message: string };
 
 const darkScheme = new MediaQuery("prefers-color-scheme: dark");
 const foreground = $derived(darkScheme.current ? "#ffffff" : "#0f0f0f");
 const font = "Figtree Variable";
 
-let courses = $state<CourseDraft[]>([]);
+const courses = editor.courses;
 const body = $derived(toDotBody(courses));
 const dot = $derived(
 	`digraph { bgcolor=transparent; graph [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; node [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; edge [color="${foreground}", fontcolor="${foreground}", fontname="${font}"]; ${body}\n}`,
@@ -33,14 +41,13 @@ let editorEl: HTMLDivElement;
 let addButton: HTMLButtonElement;
 
 const counts = $derived(idCounts(courses));
+const limit = $derived(semesterLimit(editor.maxCredits));
 
-let maxCredits = $state("20");
 let maxCreditsTouched = $state(false);
-let algorithm = $state<"list" | "heap">("list");
 const maxCreditsError = $derived.by(() => {
 	if (!maxCreditsTouched) return null;
-	const problem = creditsProblem(maxCredits);
-	return problem === null ? null : creditsMessage(problem);
+	const problem = creditsProblem(editor.maxCredits, MAX_CREDITS);
+	return problem === null ? null : creditsMessage(problem, MAX_CREDITS);
 });
 
 function addCourse() {
@@ -54,7 +61,7 @@ async function plan() {
 	if (courses.length === 0) {
 		problems.push("Agregue al menos una materia.");
 	} else {
-		const { missing, issues } = checkCourses(courses);
+		const { missing, issues } = checkCourses(courses, limit);
 		if (missing === 1) {
 			problems.push("Una materia no tiene nombre, ID o créditos.");
 		} else if (missing > 1) {
@@ -70,18 +77,40 @@ async function plan() {
 			);
 		}
 	}
-	const maxProblem = creditsProblem(maxCredits);
+	const maxProblem = creditsProblem(editor.maxCredits, MAX_CREDITS);
 	if (maxProblem !== null) {
 		problems.push(
-			`Máximo de créditos por semestre: ${creditsMessage(maxProblem)}`,
+			`Máximo de créditos por semestre: ${creditsMessage(maxProblem, MAX_CREDITS)}`,
 		);
 	}
-	if (problems.length === 0) return;
+	if (problems.length > 0) {
+		await message(`${problems.join("\n")}`, {
+			title: "Revise las materias",
+			kind: "warning",
+		});
+		return;
+	}
 
-	await message(`${problems.join("\n")}`, {
-		title: "Revise las materias",
-		kind: "warning",
-	});
+	let output: string;
+	try {
+		output = await invoke<string>("run_planner", {
+			input: toPlannerInput(courses),
+			algorithm: editor.algorithm,
+			maxCredits: Number(editor.maxCredits),
+			verbose: true,
+		});
+	} catch (error) {
+		const { kind, message: text } = error as PlannerError;
+		await message(text || "Revise las materias.", {
+			title:
+				kind === "impossible" ? "No es posible planear" : "Error al planear",
+			kind: "error",
+		});
+		return;
+	}
+
+	setPlanResult(parseVerbose(output));
+	await goto("/results");
 }
 
 function removeCourse(index: number) {
@@ -113,6 +142,7 @@ function removeCourse(index: number) {
 					bind:credits={course.credits}
 					bind:prerequisites={course.prerequisites}
 					{counts}
+					semesterLimit={limit}
 					focusOnMount={course.uid === newestUid}
 					onremove={() => removeCourse(index)}
 				/>
@@ -128,7 +158,7 @@ function removeCourse(index: number) {
 						class:invalid={maxCreditsError !== null}
 						type="text"
 						inputmode="numeric"
-						bind:value={maxCredits}
+						bind:value={editor.maxCredits}
 						aria-invalid={maxCreditsError !== null ? "true" : undefined}
 						aria-describedby={maxCreditsError !== null
 							? "max-credits-message"
@@ -144,7 +174,7 @@ function removeCourse(index: number) {
 				{/if}
 				<label class="setting">
 					<span>Algoritmo</span>
-					<select bind:value={algorithm}>
+					<select bind:value={editor.algorithm}>
 						<option value="list">Lista</option>
 						<option value="heap">Montículo</option>
 					</select>

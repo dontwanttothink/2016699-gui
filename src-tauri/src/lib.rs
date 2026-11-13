@@ -115,6 +115,7 @@ async fn open_structures_window(app: AppHandle) -> tauri::Result<()> {
     .title("Estructuras")
     .inner_size(900.0, 600.0)
     .min_inner_size(500.0, 300.0)
+    .visible(false)
     .build()?;
     Ok(())
 }

@@ -2,7 +2,7 @@
 
 body,
 :root {
-	background: transparent;
+	background: light-dark(#ffffff, #1f1f1f);
 	color-scheme: light dark;
 	height: 100%;
 }
